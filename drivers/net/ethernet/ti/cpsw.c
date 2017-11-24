@@ -174,7 +174,7 @@ static int rx_packet_max = CPSW_MAX_PACKET_SIZE;
 module_param(rx_packet_max, int, 0644);
 MODULE_PARM_DESC(rx_packet_max, "maximum receive packet size (bytes)");
 
-#define CPS_DEBUG_MSG(...) if (debug_level == 10) \
+#define CPS_DEBUG_MSG(...) if (debug_level > 9) \
                              printk(__VA_ARGS__); \
 
 struct cpsw_wr_regs {
@@ -742,7 +742,7 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 {
     CPS_DEBUG_MSG(KERN_ERR "++ TI eth: (RX?) IRQ!\n");
 
-    if (debug_level == 10)
+    if (debug_level > 10)
     {
         dump_stack();
     }
@@ -779,7 +779,7 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 {
     CPS_DEBUG_MSG(KERN_ERR "++ TI eth: TX IRQ!\n");
 
-    if (debug_level == 10)
+    if (debug_level > 10)
     {
         dump_stack();
     }
@@ -2091,6 +2091,7 @@ static int cpsw_probe(struct platform_device *pdev)
 	struct resource			*res, *ss_res;
 	u32 slave_offset, sliver_offset, slave_size;
 	int ret = 0, i, j = 0, k = 0;
+	int irq;
 
 	ndev = alloc_etherdev(sizeof(struct cpsw_priv));
 	if (!ndev) {
@@ -2295,32 +2296,70 @@ static int cpsw_probe(struct platform_device *pdev)
 		goto clean_ale_ret;
 	}
 
-	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
-		for (i = res->start; i <= res->end; i++, j++) {
-			if (j == 2)
-			{
-			    printk(KERN_ERR "------------------ TI eth: register TX IRQ!\n");
+//	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
+//		for (i = res->start; i <= res->end; i++, j++) {
+//			if (j == 2)
+//			{
+//			    printk(KERN_ERR "------------------ TI eth: register TX IRQ!\n");
+//
+//				ret = devm_request_irq(&pdev->dev, i,
+//					cpsw_tx_interrupt, 0,
+//					"eth-tx", priv);
+//			}
+//			else
+//			{
+//                printk(KERN_ERR "------------------ TI eth: register IRQ!\n");
+//
+//				ret = devm_request_irq(&pdev->dev, i,
+//					cpsw_interrupt, 0,
+//					dev_name(priv->dev), priv);
+//			}
+//			if (ret) {
+//				dev_err(priv->dev, "error attaching irq\n");
+//				goto clean_ale_ret;
+//			}
+//			priv->irqs_table[k] = i;
+//			priv->num_irqs = k + 1;
+//		}
+//		k++;
+//	}
 
-				ret = devm_request_irq(&pdev->dev, i,
-					cpsw_tx_interrupt, 0,
-					"eth-tx", priv);
-			}
-			else
-			{
-                printk(KERN_ERR "------------------ TI eth: register IRQ!\n");
+	/* Grab RX and TX IRQs. Note that we also have RX_THRESHOLD and
+	 * MISC IRQs which are always kept disabled with this driver so
+	 * we will not request them.
+	 *
+	 * If anyone wants to implement support for those, make sure to
+	 * first request and append them to irqs_table array.
+	 */
 
-				ret = devm_request_irq(&pdev->dev, i,
-					cpsw_interrupt, 0,
-					dev_name(priv->dev), priv);
-			}
-			if (ret) {
-				dev_err(priv->dev, "error attaching irq\n");
-				goto clean_ale_ret;
-			}
-			priv->irqs_table[k] = i;
-			priv->num_irqs = k + 1;
-		}
-		k++;
+	/* RX IRQ */
+	irq = platform_get_irq(pdev, 1);
+	if (irq < 0) {
+		ret = irq;
+		goto clean_ale_ret;
+	}
+
+	priv->irqs_table[0] = irq;
+	ret = devm_request_irq(&pdev->dev, irq, cpsw_interrupt,
+			       0, dev_name(&pdev->dev), priv);
+	if (ret < 0) {
+		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
+		goto clean_ale_ret;
+	}
+
+	/* TX IRQ */
+	irq = platform_get_irq(pdev, 2);
+	if (irq < 0) {
+		ret = irq;
+		goto clean_ale_ret;
+	}
+
+	priv->irqs_table[1] = irq;
+	ret = devm_request_irq(&pdev->dev, irq, cpsw_tx_interrupt,
+			       0, dev_name(&pdev->dev), priv);
+	if (ret < 0) {
+		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
+		goto clean_ale_ret;
 	}
 
 	cpsw_notice(priv, probe, "initialized device (regs %x, irq %d)\n",
