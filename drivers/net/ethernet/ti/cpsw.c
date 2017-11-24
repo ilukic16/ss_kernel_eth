@@ -1881,6 +1881,7 @@ static void cpsw_slave_init(struct cpsw_slave *slave, struct cpsw_priv *priv,
 static int cpsw_probe_dt(struct cpsw_platform_data *data,
 			 struct platform_device *pdev)
 {
+    printk(KERN_ERR "Entered cpsw_probe_dt \n");
 	struct device_node *node = pdev->dev.of_node;
 	struct device_node *slave_node;
 	int i = 0, ret;
@@ -1925,6 +1926,9 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 	}
 	data->channels = prop;
 
+    printk(KERN_ERR "cpdma_channels = %d \n", prop);
+
+
 	if (of_property_read_u32(node, "ale_entries", &prop)) {
 		pr_err("Missing ale_entries property in the DT.\n");
 		return -EINVAL;
@@ -1937,11 +1941,16 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 	}
 	data->bd_ram_size = prop;
 
+    printk(KERN_ERR "bd_ram_size = %d \n", prop);
+
+
 	if (of_property_read_u32(node, "rx_descs", &prop)) {
 		pr_err("Missing rx_descs property in the DT.\n");
 		return -EINVAL;
 	}
 	data->rx_descs = prop;
+
+	printk(KERN_ERR "rx_descs = %d \n", prop);
 
 	if (of_property_read_u32(node, "mac_control", &prop)) {
 		pr_err("Missing mac_control property in the DT.\n");
