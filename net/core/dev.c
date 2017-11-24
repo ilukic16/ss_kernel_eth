@@ -1235,11 +1235,11 @@ static int __dev_open(struct net_device *dev)
 
 	if (!netif_device_present(dev))
 	{
-	    printk(KERN_ERR "dev.c: no dev = %s\n", dev->name);
+//	    printk(KERN_ERR "dev.c: no dev = %s\n", dev->name);
 		return -ENODEV;
 	}
 
-    printk(KERN_ERR "dev.c: init dev = %s\n", dev->name);
+//    printk(KERN_ERR "dev.c: init dev = %s\n", dev->name);
 
 	/* Block netpoll from trying to do any rx path servicing.
 	 * If we don't do this there is a chance ndo_poll_controller
@@ -1251,7 +1251,7 @@ static int __dev_open(struct net_device *dev)
 	ret = notifier_to_errno(ret);
 	if (ret)
 	{
-	    printk(KERN_ERR "dev.c: ret = %d\n", ret);
+//	    printk(KERN_ERR "dev.c: ret = %d\n", ret);
 		return ret;
 	}
 
@@ -1267,11 +1267,11 @@ static int __dev_open(struct net_device *dev)
 
 	if (ret)
 	{
-        printk(KERN_ERR "dev.c: clear link state start bit\n");
+//        printk(KERN_ERR "dev.c: clear link state start bit\n");
 		clear_bit(__LINK_STATE_START, &dev->state);
 	}
 	else {
-	    printk(KERN_ERR "dev.c: ret is 0\n");
+//	    printk(KERN_ERR "dev.c: ret is 0\n");
 		dev->flags |= IFF_UP;
 		net_dmaengine_get();
 		dev_set_rx_mode(dev);
@@ -1322,7 +1322,7 @@ static int __dev_close_many(struct list_head *head)
 	list_for_each_entry(dev, head, unreg_list) {
 		call_netdevice_notifiers(NETDEV_GOING_DOWN, dev);
 
-		printk(KERN_ERR "dev.c: clear link state start bit");
+//		printk(KERN_ERR "dev.c: clear link state start bit");
 		clear_bit(__LINK_STATE_START, &dev->state);
 
 		/* Synchronize to scheduled poll. We cannot touch poll list, it
@@ -3238,7 +3238,7 @@ enqueue:
 
 int netif_rx(struct sk_buff *skb)
 {
-    printk(KERN_ERR "dev.c: netif_rx; skb->dev->name = %s; \n", skb->dev->name);
+//    printk(KERN_ERR "dev.c: netif_rx; skb->dev->name = %s; \n", skb->dev->name);
 	int ret;
 
 	/* if netpoll wants it, pretend we never saw it */
@@ -3291,7 +3291,7 @@ EXPORT_SYMBOL(netif_rx_ni);
 
 static void net_tx_action(struct softirq_action *h)
 {
-    printk(KERN_ERR "dev.c; net_tx_action");
+//    printk(KERN_ERR "dev.c; net_tx_action");
 	struct softnet_data *sd = &__get_cpu_var(softnet_data);
 
 	if (sd->completion_queue) {
@@ -3517,7 +3517,7 @@ static int __netif_receive_skb_core(struct sk_buff *skb, bool pfmemalloc)
     unsigned char * dst = src + 6;
     unsigned char * proto = src + 12;
 
-    printk(KERN_ERR "skb->dev->name = %s\n", skb->dev->name);
+//    printk(KERN_ERR "skb->dev->name = %s\n", skb->dev->name);
 
 //    int i = 0;
 //    int j = 0;
@@ -4354,7 +4354,7 @@ EXPORT_SYMBOL(netif_napi_del);
 
 static void net_rx_action(struct softirq_action *h)
 {
-    printk(KERN_ERR "dev.c: net_rx_action\n");
+//    printk(KERN_ERR "dev.c: net_rx_action\n");
 	struct softnet_data *sd = &__get_cpu_var(softnet_data);
 	unsigned long time_limit = jiffies + 2;
 	int budget = netdev_budget;

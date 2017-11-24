@@ -245,10 +245,10 @@ restart:
 			unsigned int vec_nr = h - softirq_vec;
 			int prev_count = preempt_count();
 
-			if (vec_nr == 2 || vec_nr == 3)
-			{
-			    printk(KERN_ERR "softirq %u; %s; %ps\n", vec_nr, softirq_to_name[vec_nr], h->action);
-			}
+//			if (vec_nr == 2 || vec_nr == 3)
+//			{
+//			    printk(KERN_ERR "softirq %u; %s; %ps\n", vec_nr, softirq_to_name[vec_nr], h->action);
+//			}
 
 			kstat_incr_softirqs_this_cpu(vec_nr);
 

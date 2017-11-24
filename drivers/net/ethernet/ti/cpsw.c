@@ -672,7 +672,7 @@ static void cpsw_intr_disable(struct cpsw_priv *priv)
 
 void cpsw_tx_handler(void *token, int len, int status)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI: tx handler!\n");
+    CPS_DEBUG_MSG(KERN_ERR "++ TI: tx DMA handler!\n");
 
     struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
@@ -691,7 +691,7 @@ void cpsw_tx_handler(void *token, int len, int status)
 
 void cpsw_rx_handler(void *token, int len, int status)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI: rx handler!\n");
+    CPS_DEBUG_MSG(KERN_ERR "++ TI: rx DMA handler!\n");
 
 	struct sk_buff		*skb = token;
 	struct sk_buff		*new_skb;
@@ -703,7 +703,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 	if (unlikely(status < 0) || unlikely(!netif_running(ndev))) {
 		/* the interface is going down, skbs are purged */
-	    CPS_DEBUG_MSG(KERN_ERR "cpsw.c: dropping packages, status = %d\n", status);
+	    CPS_DEBUG_MSG(KERN_ERR "cpsw.c: dropping package, status = 0x%x\n", status);
 		dev_kfree_skb_any(skb);
 		return;
 	}
@@ -1348,7 +1348,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	napi_enable(&priv->napi);
 	napi_enable(&priv->napi_tx);
-	cpdma_ctlr_start(priv->dma);
+    cpdma_ctlr_stop(priv->dma);
+    cpdma_ctlr_start(priv->dma);
 	cpsw_intr_enable(priv);
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_RX);
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_TX);
@@ -1364,6 +1365,13 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	if (priv->data.dual_emac)
 		priv->slaves[priv->emac_port].open_stat = true;
+
+//    cpdma_chan_stop(priv->rxch);
+//    cpdma_chan_start(priv->rxch);
+//
+//    cpdma_chan_stop(priv->txch);
+//    cpdma_chan_start(priv->txch);
+
     printk(KERN_ERR "cpsw.c: ret is 0\n", ret);
 	return 0;
 
