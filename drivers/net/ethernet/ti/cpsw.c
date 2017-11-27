@@ -1943,7 +1943,6 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 
     printk(KERN_ERR "bd_ram_size = %d \n", prop);
 
-
 	if (of_property_read_u32(node, "rx_descs", &prop)) {
 		pr_err("Missing rx_descs property in the DT.\n");
 		return -EINVAL;
@@ -1960,6 +1959,21 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 
 	if (of_property_read_bool(node, "dual_emac"))
 		data->dual_emac = 1;
+
+	// funny checkup
+	// according to the comments, this function checks for property presence, not value
+	// interesting to test
+    if (of_property_read_bool(node, "no_bd_ram")) {
+        printk(KERN_ERR "no_bd_ram: read bool returned true\n");
+        data->no_bd_ram = 1;
+    }
+    else
+    {
+        printk(KERN_ERR "no_bd_ram: read bool returned false\n");
+        data->no_bd_ram = 0;
+    }
+
+    printk(KERN_ERR "no_bd_ram = %d \n", data->no_bd_ram);
 
 	/*
 	 * Populate all the child nodes here...
@@ -2244,6 +2258,14 @@ static int cpsw_probe(struct platform_device *pdev)
 		slave_offset  += slave_size;
 		sliver_offset += SLIVER_SIZE;
 	}
+
+	// overwrite phy mem descriptors if no_bd_ram property is set
+	if (data->no_bd_ram)
+	{
+        dma_params.desc_mem_phys = 0;
+	}
+
+	printk(KERN_ERR "cpsw version = %d; data->no_bd_ram = %d; dma_params.desc_mem_phys = %d\n",priv->version, data->no_bd_ram, dma_params.desc_mem_phys);
 
 	dma_params.dev		= &pdev->dev;
 	dma_params.rxthresh	= dma_params.dmaregs + CPDMA_RXTHRESH;

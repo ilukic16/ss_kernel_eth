@@ -396,13 +396,13 @@ EXPORT_SYMBOL(phy_mii_ioctl);
  */
 int phy_start_aneg(struct phy_device *phydev)
 {
-    printk(KERN_ERR "\nStart autonegotiation: \n"
-					"++++ phydev->bus->id = %s, \n"
-					"++++ phydev->drv->driver.name = %s, \n"
-					"++++ phydev->lock.count.counter = %d, \n"
-					"++++ phydev->autoneg = %d, \n"
-					"++++ phydev->state = %d\n",
-					phydev->bus->id, phydev->drv->driver.name, phydev->lock.count.counter, phydev->autoneg, phydev->state);
+//    printk(KERN_ERR "\nStart autonegotiation: \n"
+//					"++++ phydev->bus->id = %s, \n"
+//					"++++ phydev->drv->driver.name = %s, \n"
+//					"++++ phydev->lock.count.counter = %d, \n"
+//					"++++ phydev->autoneg = %d, \n"
+//					"++++ phydev->state = %d\n",
+//					phydev->bus->id, phydev->drv->driver.name, phydev->lock.count.counter, phydev->autoneg, phydev->state);
 	int err;
 
 	mutex_lock(&phydev->lock);
@@ -779,19 +779,19 @@ void phy_state_machine(struct work_struct *work)
 
 			break;
 		case PHY_AN:
-			printk(KERN_ERR "---- phy_state_machine: PHY_AN\n");
+//			printk(KERN_ERR "---- phy_state_machine: PHY_AN\n");
 			err = phy_read_status(phydev);
 
 			if (err < 0)
 			{
-				printk(KERN_ERR "---- err = %d\n", err);
+//				printk(KERN_ERR "---- err = %d\n", err);
 				break;
 			}
 
 			/* If the link is down, give up on
 			 * negotiation for now */
 			if (!phydev->link) {
-				printk(KERN_ERR "---- Link is down!\n");
+//				printk(KERN_ERR "---- Link is down!\n");
 				phydev->state = PHY_NOLINK;
 				netif_carrier_off(phydev->attached_dev);
 				phydev->adjust_link(phydev->attached_dev);
@@ -803,25 +803,25 @@ void phy_state_machine(struct work_struct *work)
 			err = phy_aneg_done(phydev);
 			if (err < 0)
 			{
-				printk(KERN_ERR "---- AN done: err = %d\n", err);
+//				printk(KERN_ERR "---- AN done: err = %d\n", err);
 				break;
 			}
 
 			/* If AN is done, we're running */
 			if (err > 0) {
-				printk(KERN_ERR "---- state: AN -> RUNNING: err = %d\n", err);
+//				printk(KERN_ERR "---- state: AN -> RUNNING: err = %d\n", err);
 				phydev->state = PHY_RUNNING;
 				netif_carrier_on(phydev->attached_dev);
 				phydev->adjust_link(phydev->attached_dev);
 
 			} else if (0 == phydev->link_timeout--) {
-				printk(KERN_ERR "---- link timeout \n");
+//				printk(KERN_ERR "---- link timeout \n");
 				needs_aneg = 1;
 				/* If we have the magic_aneg bit,
 				 * we try again */
 				if (phydev->drv->flags & PHY_HAS_MAGICANEG)
 				{
-					printk(KERN_ERR "---- Magic AN bit!\n");
+//					printk(KERN_ERR "---- Magic AN bit!\n");
 
 					break;
 				}
@@ -945,12 +945,12 @@ void phy_state_machine(struct work_struct *work)
 	if (needs_aneg)
 	{
 		err = phy_start_aneg(phydev);
-		printk(KERN_ERR "---- AN needed, start: err = %d\n", err);
+//		printk(KERN_ERR "---- AN needed, start: err = %d\n", err);
 	}
 
 	if (err < 0)
 	{
-		printk(KERN_ERR "---- phy_err\n");
+//		printk(KERN_ERR "---- phy_err\n");
 		phy_error(phydev);
 	}
 
