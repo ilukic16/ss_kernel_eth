@@ -244,6 +244,11 @@ out:
 			break;
 
 		irqnr = readl_relaxed(base_addr + INTCPS_SIR_IRQ_OFFSET);
+		if (irqnr == 0x39)
+		{
+		    printk(KERN_ERR "Got rx interrupt -> cpsw_interrupt\n");
+		}
+
 		irqnr &= ACTIVEIRQ_MASK;
 
 		if (irqnr) {

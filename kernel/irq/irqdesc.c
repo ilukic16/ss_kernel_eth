@@ -300,6 +300,23 @@ static int irq_expand_nr_irqs(unsigned int nr)
 
 #endif /* !CONFIG_SPARSE_IRQ */
 
+struct nde {
+
+    /*
+     * This is the first field of the "visible" part of this structure
+     * (i.e. as seen by users in the "Space.c" file).  It is the name
+     * of the interface.
+     */
+    char            name[16];
+};
+
+struct cpsw_private_part {
+    spinlock_t          lock;
+    void     *pdev;
+    struct nde       *ndev;
+};
+
+
 /**
  * generic_handle_irq - Invoke the handler for a particular irq
  * @irq:	The irq number to handle
@@ -311,6 +328,10 @@ int generic_handle_irq(unsigned int irq)
 
 	if (!desc)
 		return -EINVAL;
+	if ((irq == 0x39) && (desc->action->dev_id != 0) && (strcmp(((struct cpsw_private_part *)desc->action->dev_id)->ndev->name, "eth0") == 0))
+	{
+	    printk(KERN_ERR "cpsw_interrupt: got rx irq!\n");
+	}
 	generic_handle_irq_desc(irq, desc);
 	return 0;
 }
