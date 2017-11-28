@@ -1010,7 +1010,6 @@ EXPORT_SYMBOL(genphy_resume);
  */
 static int phy_probe(struct device *dev)
 {
-    printk(KERN_ERR "phy_probe is called!\n");
 	struct phy_device *phydev;
 	struct phy_driver *phydrv;
 	struct device_driver *drv;
@@ -1025,11 +1024,15 @@ static int phy_probe(struct device *dev)
 	/* Disable the interrupt if the PHY doesn't support it
 	 * but the interrupt is still a valid one
 	 */
-	if (!(phydrv->flags & PHY_HAS_INTERRUPT) &&
+    printk(KERN_ERR "phy_probe is called! phydev-irq = %d\n", phydev->irq);
+
+    if (!(phydrv->flags & PHY_HAS_INTERRUPT) &&
 			phy_interrupt_is_valid(phydev))
 		phydev->irq = PHY_POLL;
 
-	if (phydrv->flags & PHY_IS_INTERNAL)
+    printk(KERN_ERR "was disabled? phydev-irq = %d\n", phydev->irq);
+
+    if (phydrv->flags & PHY_IS_INTERNAL)
 		phydev->is_internal = true;
 
 	mutex_lock(&phydev->lock);

@@ -328,10 +328,10 @@ int generic_handle_irq(unsigned int irq)
 
 	if (!desc)
 		return -EINVAL;
-	if ((irq == 0x39) && (desc->action->dev_id != 0) && (strcmp(((struct cpsw_private_part *)desc->action->dev_id)->ndev->name, "eth0") == 0))
-	{
-	    printk(KERN_ERR "cpsw_interrupt: got rx irq!\n");
-	}
+//	if ((irq == 0x39) && (desc->action->dev_id != 0) && (strcmp(((struct cpsw_private_part *)desc->action->dev_id)->ndev->name, "eth0") == 0))
+//	{
+//	    printk(KERN_ERR "cpsw_interrupt: got rx irq!\n");
+//	}
 	generic_handle_irq_desc(irq, desc);
 	return 0;
 }

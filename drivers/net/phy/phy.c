@@ -412,7 +412,7 @@ int phy_start_aneg(struct phy_device *phydev)
 
 	err = phydev->drv->config_aneg(phydev);
 
-    printk("\n++++ err = %d, after lock phydev->lock.count.counter = %d, phydev->state = %d\n", err, phydev->lock.count.counter, phydev->state);
+//    printk("\n++++ err = %d, after lock phydev->lock.count.counter = %d, phydev->state = %d\n", err, phydev->lock.count.counter, phydev->state);
 
 	if (err < 0)
 		goto out_unlock;
@@ -428,7 +428,7 @@ int phy_start_aneg(struct phy_device *phydev)
 	}
 
 out_unlock:
-    printk("\n++++ phydev->state = %d\n", phydev->state);
+//    printk("\n++++ phydev->state = %d\n", phydev->state);
 
 //    dump_stack();
 
@@ -454,6 +454,8 @@ EXPORT_SYMBOL(phy_start_aneg);
 void phy_start_machine(struct phy_device *phydev,
 		void (*handler)(struct net_device *))
 {
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	phydev->adjust_state = handler;
 
 	queue_delayed_work(system_power_efficient_wq, &phydev->state_queue, HZ);
@@ -469,6 +471,8 @@ void phy_start_machine(struct phy_device *phydev,
  */
 void phy_stop_machine(struct phy_device *phydev)
 {
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	cancel_delayed_work_sync(&phydev->state_queue);
 
 	mutex_lock(&phydev->lock);
@@ -490,6 +494,8 @@ void phy_stop_machine(struct phy_device *phydev)
  */
 static void phy_error(struct phy_device *phydev)
 {
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	mutex_lock(&phydev->lock);
 	phydev->state = PHY_HALTED;
 	mutex_unlock(&phydev->lock);
@@ -507,6 +513,8 @@ static irqreturn_t phy_interrupt(int irq, void *phy_dat)
 {
 	struct phy_device *phydev = phy_dat;
 
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	if (PHY_HALTED == phydev->state)
 		return IRQ_NONE;		/* It can't be ours.  */
 
@@ -515,6 +523,8 @@ static irqreturn_t phy_interrupt(int irq, void *phy_dat)
 	 * queue will write the PHY to disable and clear the
 	 * interrupt, and then reenable the irq line. */
 	disable_irq_nosync(irq);
+	printk(KERN_ERR "%s: disabled irq: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	atomic_inc(&phydev->irq_disable);
 
 	queue_work(system_power_efficient_wq, &phydev->phy_queue);
@@ -529,6 +539,8 @@ static irqreturn_t phy_interrupt(int irq, void *phy_dat)
 static int phy_enable_interrupts(struct phy_device *phydev)
 {
 	int err;
+
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
 
 	err = phy_clear_interrupt(phydev);
 
@@ -547,6 +559,8 @@ static int phy_enable_interrupts(struct phy_device *phydev)
 static int phy_disable_interrupts(struct phy_device *phydev)
 {
 	int err;
+
+	printk(KERN_ERR "%s: phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
 
 	/* Disable PHY interrupts */
 	err = phy_config_interrupt(phydev, PHY_INTERRUPT_DISABLED);
@@ -583,6 +597,7 @@ int phy_start_interrupts(struct phy_device *phydev)
 	int err = 0;
 
 	atomic_set(&phydev->irq_disable, 0);
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
 	if (request_irq(phydev->irq, phy_interrupt,
 				IRQF_SHARED,
 				"phy_interrupt",
@@ -590,10 +605,15 @@ int phy_start_interrupts(struct phy_device *phydev)
 		pr_warn("%s: Can't get IRQ %d (PHY)\n",
 			phydev->bus->name, phydev->irq);
 		phydev->irq = PHY_POLL;
+
+		printk(KERN_ERR "%s: error: irq-disabled, phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
+
 		return 0;
 	}
 
+
 	err = phy_enable_interrupts(phydev);
+	printk(KERN_ERR "%s: error: irq-enabled, phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, phydev->irq);
 
 	return err;
 }
@@ -606,6 +626,8 @@ EXPORT_SYMBOL(phy_start_interrupts);
 int phy_stop_interrupts(struct phy_device *phydev)
 {
 	int err;
+
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
 
 	err = phy_disable_interrupts(phydev);
 
@@ -644,14 +666,21 @@ void phy_change(struct work_struct *work)
 	struct phy_device *phydev =
 		container_of(work, struct phy_device, phy_queue);
 
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
+
 	if (phydev->drv->did_interrupt &&
 	    !phydev->drv->did_interrupt(phydev))
+	{
+		printk(KERN_ERR "%s: ignore: irq did not happen!\n", __PRETTY_FUNCTION__);
 		goto ignore;
-
+	}
 	err = phy_disable_interrupts(phydev);
 
 	if (err)
+	{
+		printk(KERN_ERR "%s: error while disable of irqs!\n", __PRETTY_FUNCTION__);
 		goto phy_err;
+	}
 
 	mutex_lock(&phydev->lock);
 	if ((PHY_RUNNING == phydev->state) || (PHY_NOLINK == phydev->state))
@@ -659,6 +688,9 @@ void phy_change(struct work_struct *work)
 	mutex_unlock(&phydev->lock);
 
 	atomic_dec(&phydev->irq_disable);
+
+	printk(KERN_ERR "%s: enable irq: 0x%x (if matches previous, re-enables it)!\n", __PRETTY_FUNCTION__, phydev->irq);
+
 	enable_irq(phydev->irq);
 
 	/* Reenable interrupts */
@@ -692,6 +724,7 @@ phy_err:
  */
 void phy_stop(struct phy_device *phydev)
 {
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
 	mutex_lock(&phydev->lock);
 
 	if (PHY_HALTED == phydev->state)
@@ -730,6 +763,7 @@ out_unlock:
  */
 void phy_start(struct phy_device *phydev)
 {
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
 	mutex_lock(&phydev->lock);
 
 	switch (phydev->state) {
@@ -758,6 +792,9 @@ void phy_state_machine(struct work_struct *work)
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct phy_device *phydev =
 			container_of(dwork, struct phy_device, state_queue);
+
+	printk(KERN_ERR "%s: dev_name = %s; phydev-irq = 0x%x\n", __PRETTY_FUNCTION__, dev_name(&(phydev->dev)), phydev->irq);
+
 	int needs_aneg = 0;
 	int err = 0;
 

@@ -412,6 +412,8 @@ EXPORT_SYMBOL(disable_irq_nosync);
  */
 void disable_irq(unsigned int irq)
 {
+	printk(KERN_ERR "%s: disable irq 0x%x!\n", __PRETTY_FUNCTION__, irq);
+
 	if (!__disable_irq_nosync(irq))
 		synchronize_irq(irq);
 }
@@ -463,6 +465,8 @@ void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume)
  */
 void enable_irq(unsigned int irq)
 {
+	printk(KERN_ERR "%s: enable irq 0x%x!\n", __PRETTY_FUNCTION__, irq);
+
 	unsigned long flags;
 	struct irq_desc *desc = irq_get_desc_buslock(irq, &flags, IRQ_GET_DESC_CHECK_GLOBAL);
 
