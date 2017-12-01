@@ -760,18 +760,51 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	if (netif_running(priv->ndev)) {
 	    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: NAPI_SCH 1!\n");
 		napi_schedule(&priv->napi);
+
+//		if (!priv->irq_enabled) {
+//			priv->irq_enabled = true;
+//			enable_irq(priv->irqs_table[0]);
+//			enable_irq(priv->irqs_table[1]);
+//			enable_irq(priv->irqs_table[3]);
+//		}
+
 		return IRQ_HANDLED;
 	}
 
 	priv = cpsw_get_slave_priv(priv, 1);
-	if (!priv)
+	if (!priv)	{
+
+//		if (!priv->irq_enabled) {
+//			priv->irq_enabled = true;
+//			enable_irq(priv->irqs_table[0]);
+//			enable_irq(priv->irqs_table[1]);
+//			enable_irq(priv->irqs_table[3]);
+//		}
+
 		return IRQ_NONE;
+	}
 
 	if (netif_running(priv->ndev)) {
         CPS_DEBUG_MSG(KERN_ERR "++ TI eth: NAPI_SCH 2!\n");
 		napi_schedule(&priv->napi);
+
+//		if (!priv->irq_enabled) {
+//			priv->irq_enabled = true;
+//			enable_irq(priv->irqs_table[0]);
+//			enable_irq(priv->irqs_table[1]);
+//			enable_irq(priv->irqs_table[3]);
+//		}
+
 		return IRQ_HANDLED;
 	}
+
+//	if (!priv->irq_enabled) {
+//		priv->irq_enabled = true;
+//		enable_irq(priv->irqs_table[0]);
+//		enable_irq(priv->irqs_table[1]);
+//		enable_irq(priv->irqs_table[3]);
+//	}
+
 	return IRQ_NONE;
 }
 
@@ -785,6 +818,17 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
     }
 
     struct cpsw_priv *priv = dev_id;
+    int j = 0;
+
+//	if (debug_level == 5)
+//	{
+//		for (j = 0;j < 5;++j)
+//		{
+//			enable_irq(priv->irqs_table[0]);
+//			enable_irq(priv->irqs_table[1]);
+//			enable_irq(priv->irqs_table[3]);
+//		}
+//	}
 
 	__raw_writel(0, &priv->wr_regs->tx_en);
 	if (priv->irq_tx_enabled) {
@@ -792,19 +836,45 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 		priv->irq_tx_enabled = false;
 	}
 
+
 	if (netif_running(priv->ndev)) {
 		napi_schedule(&priv->napi_tx);
+
+//		if (!priv->irq_tx_enabled) {
+//			priv->irq_tx_enabled = true;
+//			enable_irq(priv->irqs_table[2]);
+//		}
+
 		return IRQ_HANDLED;
 	}
 
 	priv = cpsw_get_slave_priv(priv, 1);
-	if (!priv)
+	if (!priv) {
+
+//		if (!priv->irq_tx_enabled) {
+//			priv->irq_tx_enabled = true;
+//			enable_irq(priv->irqs_table[2]);
+//		}
+
 		return IRQ_NONE;
+	}
 
 	if (netif_running(priv->ndev)) {
 		napi_schedule(&priv->napi_tx);
+
+//		if (!priv->irq_tx_enabled) {
+//			priv->irq_tx_enabled = true;
+//			enable_irq(priv->irqs_table[2]);
+//		}
+
 		return IRQ_HANDLED;
 	}
+
+//	if (!priv->irq_tx_enabled) {
+//		priv->irq_tx_enabled = true;
+//		enable_irq(priv->irqs_table[2]);
+//	}
+
 	return IRQ_NONE;
 }
 
@@ -817,7 +887,6 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 	num_rx = cpdma_chan_process(priv->rxch, budget);
 	if (num_rx < budget) {
 		struct cpsw_priv *prim_cpsw;
-
 		napi_complete(napi);
 		__raw_writel(0xFF, &priv->wr_regs->rx_en);
 		cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_RX);
@@ -828,10 +897,12 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 			enable_irq(priv->irqs_table[1]);
 			enable_irq(priv->irqs_table[3]);
 		}
+
 	}
 
 	if (num_rx)
 		cpsw_dbg(priv, intr, "poll %d rx pkts\n", num_rx);
+
 
 	return num_rx;
 }
@@ -859,6 +930,7 @@ static int cpsw_tx_poll(struct napi_struct *napi, int budget)
 
 	if (num_tx)
 		cpsw_dbg(priv, intr, "poll %d tx pkts\n", num_tx);
+
 
 	return num_tx;
 }
@@ -1049,12 +1121,24 @@ static void cpsw_get_strings(struct net_device *ndev, u32 stringset, u8 *data)
 static void cpsw_get_ethtool_stats(struct net_device *ndev,
 				    struct ethtool_stats *stats, u64 *data)
 {
+
 	struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpdma_chan_stats rx_stats;
 	struct cpdma_chan_stats tx_stats;
 	u32 val;
 	u8 *p;
 	int i;
+
+	if (debug_level == 5)
+	{
+//		int j = 0;
+//		for (j = 0;j < 10;++j)
+//		{
+			enable_irq(priv->irqs_table[0]);
+			enable_irq(priv->irqs_table[1]);
+			enable_irq(priv->irqs_table[3]);
+//		}
+	}
 
 	/* Collect Davinci CPDMA stats for Rx and Tx Channel */
 	cpdma_chan_get_stats(priv->rxch, &rx_stats);
@@ -1268,8 +1352,7 @@ static void cpsw_slave_stop(struct cpsw_slave *slave, struct cpsw_priv *priv)
 
 static int cpsw_ndo_open(struct net_device *ndev)
 {
-    printk(KERN_ERR "Open called: !!!! ndev->state = %d; ndev->watchdog_timeo = %d\n",
-            ndev->state, ndev->watchdog_timeo);
+//    printk(KERN_ERR "Open called: !!!! ndev->state = %d; ndev->watchdog_timeo = %d\n", ndev->state, ndev->watchdog_timeo);
 
     struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpsw_priv *prim_cpsw;
@@ -1354,13 +1437,38 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_RX);
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_TX);
 
+	printk(KERN_ERR "Open: about to enable rx irqs\n");
 	prim_cpsw = cpsw_get_slave_priv(priv, 0);
-	if (!prim_cpsw->irq_enabled && !prim_cpsw->irq_tx_enabled) {
+	if (!prim_cpsw->irq_enabled) {
 		if ((priv == prim_cpsw) || !netif_running(prim_cpsw->ndev)) {
+			printk(KERN_ERR "Open: enabling rx irqs\n");
+
 			prim_cpsw->irq_enabled = true;
-			prim_cpsw->irq_tx_enabled = true;
-			cpsw_enable_irq(prim_cpsw);
+//			cpsw_enable_irq(prim_cpsw);
+
+			enable_irq(prim_cpsw->irqs_table[0]);
+			enable_irq(prim_cpsw->irqs_table[1]);
+			enable_irq(prim_cpsw->irqs_table[3]);
 		}
+	}
+	else
+	{
+		printk(KERN_ERR "Open: rx irqs are not disabled\n");
+	}
+
+	printk(KERN_ERR "Open: about to enable tx irqs\n");
+	if (!prim_cpsw->irq_tx_enabled) {
+		if ((priv == prim_cpsw) || !netif_running(prim_cpsw->ndev)) {
+			printk(KERN_ERR "Open: enabling tx irqs\n");
+
+			prim_cpsw->irq_tx_enabled = true;
+
+			enable_irq(prim_cpsw->irqs_table[2]);
+		}
+	}
+	else
+	{
+		printk(KERN_ERR "Open: tx irqs are not disabled\n");
 	}
 
 	if (priv->data.dual_emac)
@@ -1372,7 +1480,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 //    cpdma_chan_stop(priv->txch);
 //    cpdma_chan_start(priv->txch);
 
-    printk(KERN_ERR "cpsw.c: ret is 0\n", ret);
+//    printk(KERN_ERR "cpsw.c: ret is 0\n", ret);
 	return 0;
 
 err_cleanup:
@@ -1380,7 +1488,7 @@ err_cleanup:
 	for_each_slave(priv, cpsw_slave_stop, priv);
 	pm_runtime_put_sync(&priv->pdev->dev);
 	netif_carrier_off(priv->ndev);
-    printk(KERN_ERR "cpsw.c: error ret = %d\n", ret);
+//    printk(KERN_ERR "cpsw.c: error ret = %d\n", ret);
 	return ret;
 }
 
@@ -2335,71 +2443,71 @@ static int cpsw_probe(struct platform_device *pdev)
 		goto clean_ale_ret;
 	}
 
-//	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
-//		for (i = res->start; i <= res->end; i++, j++) {
-//			if (j == 2)
-//			{
-//			    printk(KERN_ERR "------------------ TI eth: register TX IRQ!\n");
+	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
+		for (i = res->start; i <= res->end; i++, j++) {
+			if (j == 2)
+			{
+			    printk(KERN_ERR "------------------ TI eth: register TX IRQ!\n");
+
+				ret = devm_request_irq(&pdev->dev, i,
+					cpsw_tx_interrupt, 0,
+					"eth-tx", priv);
+			}
+			else
+			{
+                printk(KERN_ERR "------------------ TI eth: register IRQ!\n");
+
+				ret = devm_request_irq(&pdev->dev, i,
+					cpsw_interrupt, 0,
+					dev_name(priv->dev), priv);
+			}
+			if (ret) {
+				dev_err(priv->dev, "error attaching irq\n");
+				goto clean_ale_ret;
+			}
+			priv->irqs_table[k] = i;
+			priv->num_irqs = k + 1;
+		}
+		k++;
+	}
+
+//	/* Grab RX and TX IRQs. Note that we also have RX_THRESHOLD and
+//	 * MISC IRQs which are always kept disabled with this driver so
+//	 * we will not request them.
+//	 *
+//	 * If anyone wants to implement support for those, make sure to
+//	 * first request and append them to irqs_table array.
+//	 */
 //
-//				ret = devm_request_irq(&pdev->dev, i,
-//					cpsw_tx_interrupt, 0,
-//					"eth-tx", priv);
-//			}
-//			else
-//			{
-//                printk(KERN_ERR "------------------ TI eth: register IRQ!\n");
-//
-//				ret = devm_request_irq(&pdev->dev, i,
-//					cpsw_interrupt, 0,
-//					dev_name(priv->dev), priv);
-//			}
-//			if (ret) {
-//				dev_err(priv->dev, "error attaching irq\n");
-//				goto clean_ale_ret;
-//			}
-//			priv->irqs_table[k] = i;
-//			priv->num_irqs = k + 1;
-//		}
-//		k++;
+//	/* RX IRQ */
+//	irq = platform_get_irq(pdev, 1);
+//	if (irq < 0) {
+//		ret = irq;
+//		goto clean_ale_ret;
 //	}
-
-	/* Grab RX and TX IRQs. Note that we also have RX_THRESHOLD and
-	 * MISC IRQs which are always kept disabled with this driver so
-	 * we will not request them.
-	 *
-	 * If anyone wants to implement support for those, make sure to
-	 * first request and append them to irqs_table array.
-	 */
-
-	/* RX IRQ */
-	irq = platform_get_irq(pdev, 1);
-	if (irq < 0) {
-		ret = irq;
-		goto clean_ale_ret;
-	}
-
-	priv->irqs_table[0] = irq;
-	ret = devm_request_irq(&pdev->dev, irq, cpsw_interrupt,
-			       0, dev_name(&pdev->dev), priv);
-	if (ret < 0) {
-		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
-		goto clean_ale_ret;
-	}
-
-	/* TX IRQ */
-	irq = platform_get_irq(pdev, 2);
-	if (irq < 0) {
-		ret = irq;
-		goto clean_ale_ret;
-	}
-
-	priv->irqs_table[1] = irq;
-	ret = devm_request_irq(&pdev->dev, irq, cpsw_tx_interrupt,
-			       0, dev_name(&pdev->dev), priv);
-	if (ret < 0) {
-		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
-		goto clean_ale_ret;
-	}
+//
+//	priv->irqs_table[0] = irq;
+//	ret = devm_request_irq(&pdev->dev, irq, cpsw_interrupt,
+//			       0, dev_name(&pdev->dev), priv);
+//	if (ret < 0) {
+//		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
+//		goto clean_ale_ret;
+//	}
+//
+//	/* TX IRQ */
+//	irq = platform_get_irq(pdev, 2);
+//	if (irq < 0) {
+//		ret = irq;
+//		goto clean_ale_ret;
+//	}
+//
+//	priv->irqs_table[1] = irq;
+//	ret = devm_request_irq(&pdev->dev, irq, cpsw_tx_interrupt,
+//			       0, dev_name(&pdev->dev), priv);
+//	if (ret < 0) {
+//		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
+//		goto clean_ale_ret;
+//	}
 
 	cpsw_notice(priv, probe, "initialized device (regs %x, irq %d)\n",
 		    ss_res->start, ndev->irq);

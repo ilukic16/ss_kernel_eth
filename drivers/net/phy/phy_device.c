@@ -1024,13 +1024,13 @@ static int phy_probe(struct device *dev)
 	/* Disable the interrupt if the PHY doesn't support it
 	 * but the interrupt is still a valid one
 	 */
-    printk(KERN_ERR "phy_probe is called! phydev-irq = %d\n", phydev->irq);
+//    printk(KERN_ERR "phy_probe is called! phydev-irq = %d\n", phydev->irq);
 
     if (!(phydrv->flags & PHY_HAS_INTERRUPT) &&
 			phy_interrupt_is_valid(phydev))
 		phydev->irq = PHY_POLL;
 
-    printk(KERN_ERR "was disabled? phydev-irq = %d\n", phydev->irq);
+//    printk(KERN_ERR "was disabled? phydev-irq = %d\n", phydev->irq);
 
     if (phydrv->flags & PHY_IS_INTERNAL)
 		phydev->is_internal = true;

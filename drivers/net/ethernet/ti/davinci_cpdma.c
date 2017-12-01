@@ -316,13 +316,13 @@ int cpdma_ctlr_start(struct cpdma_ctlr *ctlr)
 	if (ctlr->params.has_soft_reset) {
 		unsigned timeout = 10 * 100;
 
-        printk(KERN_ERR "wr: CPDMA_SOFTRESET\n");
+//        printk(KERN_ERR "wr: CPDMA_SOFTRESET\n");
 
 		dma_reg_write(ctlr, CPDMA_SOFTRESET, 1);
 		while (timeout) {
 			if (dma_reg_read(ctlr, CPDMA_SOFTRESET) == 0)
 			{
-		        printk(KERN_ERR "rd: CPDMA_SOFTRESET == 0, ok\n");
+//		        printk(KERN_ERR "rd: CPDMA_SOFTRESET == 0, ok\n");
 
 				break;
 			}
