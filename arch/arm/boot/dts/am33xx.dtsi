@@ -729,15 +729,9 @@
 			clock-names = "fck", "cpts";
 			cpdma_channels = <8>;
 			ale_entries = <1024>;
-/*
-			no_bd_ram changed from 0 to 1 according to:
-			https://e2e.ti.com/support/embedded/linux/f/354/t/275925#pi317016=1
-			
-			Increased RAM size and rx_desc proportionally (x16)
-*/			
-			bd_ram_size = <0x20000>;
-			no_bd_ram = <1>;
-			rx_descs = <1024>;
+			bd_ram_size = <0x2000>;
+			no_bd_ram = <0>;
+			rx_descs = <64>;
 			mac_control = <0x20>;
 			slaves = <2>;
 			active_slave = <0>;

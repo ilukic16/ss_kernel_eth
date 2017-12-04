@@ -13,13 +13,6 @@
  * GNU General Public License for more details.
  */
 
-// yes provide additional warnings!
-#ifdef __WARN_TAINT
-#undef __WARN_TAINT
-#endif
-
-#define DEBUG
-
 #include <linux/kernel.h>
 #include <linux/io.h>
 #include <linux/clk.h>
@@ -163,19 +156,16 @@ do {								\
 		priv->data.active_slave)
 
 static int debug_level;
-module_param(debug_level, int, 0644);
+module_param(debug_level, int, 0);
 MODULE_PARM_DESC(debug_level, "cpsw debug level (NETIF_MSG bits)");
 
 static int ale_ageout = 10;
-module_param(ale_ageout, int, 0644);
+module_param(ale_ageout, int, 0);
 MODULE_PARM_DESC(ale_ageout, "cpsw ale ageout interval (seconds)");
 
 static int rx_packet_max = CPSW_MAX_PACKET_SIZE;
-module_param(rx_packet_max, int, 0644);
+module_param(rx_packet_max, int, 0);
 MODULE_PARM_DESC(rx_packet_max, "maximum receive packet size (bytes)");
-
-#define CPS_DEBUG_MSG(...) if (debug_level > 9) \
-                             printk(__VA_ARGS__); \
 
 struct cpsw_wr_regs {
 	u32	id_ver;
@@ -672,9 +662,7 @@ static void cpsw_intr_disable(struct cpsw_priv *priv)
 
 void cpsw_tx_handler(void *token, int len, int status)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI: tx DMA handler!\n");
-
-    struct sk_buff		*skb = token;
+	struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
 
@@ -691,8 +679,6 @@ void cpsw_tx_handler(void *token, int len, int status)
 
 void cpsw_rx_handler(void *token, int len, int status)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI: rx DMA handler!\n");
-
 	struct sk_buff		*skb = token;
 	struct sk_buff		*new_skb;
 	struct net_device	*ndev = skb->dev;
@@ -703,7 +689,6 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 	if (unlikely(status < 0) || unlikely(!netif_running(ndev))) {
 		/* the interface is going down, skbs are purged */
-	    CPS_DEBUG_MSG(KERN_ERR "cpsw.c: dropping package, status = 0x%x\n", status);
 		dev_kfree_skb_any(skb);
 		return;
 	}
@@ -713,12 +698,11 @@ void cpsw_rx_handler(void *token, int len, int status)
 		new_skb = netdev_alloc_skb_ip_align(ndev, priv->rx_packet_max);
 	}
 	else {
-	    CPS_DEBUG_MSG("dropped jumbo frame of length %d\n", len);
+		printk("dropped jumbo frame of length %d\n", len);
 		new_skb = 0;
 	}
 
 	if (new_skb) {
-	    CPS_DEBUG_MSG(KERN_ERR "cpsw rx handler: processing skb\n");
 		skb_put(skb, len);
 		cpts_rx_timestamp(priv->cpts, skb);
 		skb->protocol = eth_type_trans(skb, ndev);
@@ -726,12 +710,10 @@ void cpsw_rx_handler(void *token, int len, int status)
 		priv->stats.rx_bytes += len;
 		priv->stats.rx_packets++;
 	} else {
-	    CPS_DEBUG_MSG(KERN_ERR "cpsw rx handler: dropping skb\n");
 		priv->stats.rx_dropped++;
 		new_skb = skb;
 	}
 
-	CPS_DEBUG_MSG(KERN_ERR "cpsw rx handler: submit skb data to dma\n");
 	ret = cpdma_chan_submit(priv->rxch, new_skb, new_skb->data,
 			skb_tailroom(new_skb), 0);
 	if (WARN_ON(ret < 0))
@@ -740,13 +722,6 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: (RX?) IRQ!\n");
-
-    if (debug_level > 10)
-    {
-        dump_stack();
-    }
-
 	struct cpsw_priv *priv = dev_id;
 
 	__raw_writel(0, &priv->wr_regs->rx_en);
@@ -758,77 +733,24 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	}
 
 	if (netif_running(priv->ndev)) {
-	    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: NAPI_SCH 1!\n");
 		napi_schedule(&priv->napi);
-
-//		if (!priv->irq_enabled) {
-//			priv->irq_enabled = true;
-//			enable_irq(priv->irqs_table[0]);
-//			enable_irq(priv->irqs_table[1]);
-//			enable_irq(priv->irqs_table[3]);
-//		}
-
 		return IRQ_HANDLED;
 	}
 
 	priv = cpsw_get_slave_priv(priv, 1);
-	if (!priv)	{
-
-//		if (!priv->irq_enabled) {
-//			priv->irq_enabled = true;
-//			enable_irq(priv->irqs_table[0]);
-//			enable_irq(priv->irqs_table[1]);
-//			enable_irq(priv->irqs_table[3]);
-//		}
-
+	if (!priv)
 		return IRQ_NONE;
-	}
 
 	if (netif_running(priv->ndev)) {
-        CPS_DEBUG_MSG(KERN_ERR "++ TI eth: NAPI_SCH 2!\n");
 		napi_schedule(&priv->napi);
-
-//		if (!priv->irq_enabled) {
-//			priv->irq_enabled = true;
-//			enable_irq(priv->irqs_table[0]);
-//			enable_irq(priv->irqs_table[1]);
-//			enable_irq(priv->irqs_table[3]);
-//		}
-
 		return IRQ_HANDLED;
 	}
-
-//	if (!priv->irq_enabled) {
-//		priv->irq_enabled = true;
-//		enable_irq(priv->irqs_table[0]);
-//		enable_irq(priv->irqs_table[1]);
-//		enable_irq(priv->irqs_table[3]);
-//	}
-
 	return IRQ_NONE;
 }
 
 static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: TX IRQ!\n");
-
-    if (debug_level > 10)
-    {
-        dump_stack();
-    }
-
-    struct cpsw_priv *priv = dev_id;
-    int j = 0;
-
-//	if (debug_level == 5)
-//	{
-//		for (j = 0;j < 5;++j)
-//		{
-//			enable_irq(priv->irqs_table[0]);
-//			enable_irq(priv->irqs_table[1]);
-//			enable_irq(priv->irqs_table[3]);
-//		}
-//	}
+	struct cpsw_priv *priv = dev_id;
 
 	__raw_writel(0, &priv->wr_regs->tx_en);
 	if (priv->irq_tx_enabled) {
@@ -836,57 +758,31 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 		priv->irq_tx_enabled = false;
 	}
 
-
 	if (netif_running(priv->ndev)) {
 		napi_schedule(&priv->napi_tx);
-
-//		if (!priv->irq_tx_enabled) {
-//			priv->irq_tx_enabled = true;
-//			enable_irq(priv->irqs_table[2]);
-//		}
-
 		return IRQ_HANDLED;
 	}
 
 	priv = cpsw_get_slave_priv(priv, 1);
-	if (!priv) {
-
-//		if (!priv->irq_tx_enabled) {
-//			priv->irq_tx_enabled = true;
-//			enable_irq(priv->irqs_table[2]);
-//		}
-
+	if (!priv)
 		return IRQ_NONE;
-	}
 
 	if (netif_running(priv->ndev)) {
 		napi_schedule(&priv->napi_tx);
-
-//		if (!priv->irq_tx_enabled) {
-//			priv->irq_tx_enabled = true;
-//			enable_irq(priv->irqs_table[2]);
-//		}
-
 		return IRQ_HANDLED;
 	}
-
-//	if (!priv->irq_tx_enabled) {
-//		priv->irq_tx_enabled = true;
-//		enable_irq(priv->irqs_table[2]);
-//	}
-
 	return IRQ_NONE;
 }
 
 static int cpsw_poll(struct napi_struct *napi, int budget)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: (rx?) poll!\n");
 	struct cpsw_priv	*priv = napi_to_priv(napi);
 	int			num_rx;
 
 	num_rx = cpdma_chan_process(priv->rxch, budget);
 	if (num_rx < budget) {
 		struct cpsw_priv *prim_cpsw;
+
 		napi_complete(napi);
 		__raw_writel(0xFF, &priv->wr_regs->rx_en);
 		cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_RX);
@@ -897,20 +793,16 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 			enable_irq(priv->irqs_table[1]);
 			enable_irq(priv->irqs_table[3]);
 		}
-
 	}
 
 	if (num_rx)
 		cpsw_dbg(priv, intr, "poll %d rx pkts\n", num_rx);
-
 
 	return num_rx;
 }
 
 static int cpsw_tx_poll(struct napi_struct *napi, int budget)
 {
-    CPS_DEBUG_MSG(KERN_ERR "++ TI eth: tx poll!\n");
-
 	struct cpsw_priv	*priv = napi_tx_to_priv(napi);
 	int			num_tx;
 
@@ -930,7 +822,6 @@ static int cpsw_tx_poll(struct napi_struct *napi, int budget)
 
 	if (num_tx)
 		cpsw_dbg(priv, intr, "poll %d tx pkts\n", num_tx);
-
 
 	return num_tx;
 }
@@ -1121,24 +1012,12 @@ static void cpsw_get_strings(struct net_device *ndev, u32 stringset, u8 *data)
 static void cpsw_get_ethtool_stats(struct net_device *ndev,
 				    struct ethtool_stats *stats, u64 *data)
 {
-
 	struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpdma_chan_stats rx_stats;
 	struct cpdma_chan_stats tx_stats;
 	u32 val;
 	u8 *p;
 	int i;
-
-	if (debug_level == 5)
-	{
-//		int j = 0;
-//		for (j = 0;j < 10;++j)
-//		{
-			enable_irq(priv->irqs_table[0]);
-			enable_irq(priv->irqs_table[1]);
-			enable_irq(priv->irqs_table[3]);
-//		}
-	}
 
 	/* Collect Davinci CPDMA stats for Rx and Tx Channel */
 	cpdma_chan_get_stats(priv->rxch, &rx_stats);
@@ -1236,7 +1115,6 @@ static void soft_reset_slave(struct cpsw_slave *slave)
 
 static void cpsw_slave_open(struct cpsw_slave *slave, struct cpsw_priv *priv)
 {
-    CPS_DEBUG_MSG("------ phy_id = %s", slave->data->phy_id);
 	u32 slave_port;
 
 	soft_reset_slave(slave);
@@ -1352,9 +1230,7 @@ static void cpsw_slave_stop(struct cpsw_slave *slave, struct cpsw_priv *priv)
 
 static int cpsw_ndo_open(struct net_device *ndev)
 {
-//    printk(KERN_ERR "Open called: !!!! ndev->state = %d; ndev->watchdog_timeo = %d\n", ndev->state, ndev->watchdog_timeo);
-
-    struct cpsw_priv *priv = netdev_priv(ndev);
+	struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpsw_priv *prim_cpsw;
 	int i, ret;
 	u32 reg;
@@ -1431,56 +1307,33 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	napi_enable(&priv->napi);
 	napi_enable(&priv->napi_tx);
-    cpdma_ctlr_stop(priv->dma);
-    cpdma_ctlr_start(priv->dma);
+	cpdma_ctlr_start(priv->dma);
 	cpsw_intr_enable(priv);
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_RX);
 	cpdma_ctlr_eoi(priv->dma, CPDMA_EOI_TX);
 
-	printk(KERN_ERR "Open: about to enable rx irqs\n");
 	prim_cpsw = cpsw_get_slave_priv(priv, 0);
 	if (!prim_cpsw->irq_enabled) {
 		if ((priv == prim_cpsw) || !netif_running(prim_cpsw->ndev)) {
-			printk(KERN_ERR "Open: enabling rx irqs\n");
-
 			prim_cpsw->irq_enabled = true;
-//			cpsw_enable_irq(prim_cpsw);
 
 			enable_irq(prim_cpsw->irqs_table[0]);
 			enable_irq(prim_cpsw->irqs_table[1]);
 			enable_irq(prim_cpsw->irqs_table[3]);
 		}
 	}
-	else
-	{
-		printk(KERN_ERR "Open: rx irqs are not disabled\n");
-	}
 
-	printk(KERN_ERR "Open: about to enable tx irqs\n");
 	if (!prim_cpsw->irq_tx_enabled) {
 		if ((priv == prim_cpsw) || !netif_running(prim_cpsw->ndev)) {
-			printk(KERN_ERR "Open: enabling tx irqs\n");
-
 			prim_cpsw->irq_tx_enabled = true;
 
 			enable_irq(prim_cpsw->irqs_table[2]);
 		}
 	}
-	else
-	{
-		printk(KERN_ERR "Open: tx irqs are not disabled\n");
-	}
 
 	if (priv->data.dual_emac)
 		priv->slaves[priv->emac_port].open_stat = true;
 
-//    cpdma_chan_stop(priv->rxch);
-//    cpdma_chan_start(priv->rxch);
-//
-//    cpdma_chan_stop(priv->txch);
-//    cpdma_chan_start(priv->txch);
-
-//    printk(KERN_ERR "cpsw.c: ret is 0\n", ret);
 	return 0;
 
 err_cleanup:
@@ -1488,7 +1341,6 @@ err_cleanup:
 	for_each_slave(priv, cpsw_slave_stop, priv);
 	pm_runtime_put_sync(&priv->pdev->dev);
 	netif_carrier_off(priv->ndev);
-//    printk(KERN_ERR "cpsw.c: error ret = %d\n", ret);
 	return ret;
 }
 
@@ -1915,22 +1767,13 @@ static int cpsw_get_settings(struct net_device *ndev,
 
 static int cpsw_set_settings(struct net_device *ndev, struct ethtool_cmd *ecmd)
 {
-    printk(KERN_ERR "About to call set settings, leading to auto-negotiation...\n");
 	struct cpsw_priv *priv = netdev_priv(ndev);
 	int slave_no = cpsw_slave_index(priv);
 
 	if (priv->slaves[slave_no].phy)
-	{
-        int retVal = phy_ethtool_sset(priv->slaves[slave_no].phy, ecmd);
-	    printk(KERN_ERR "Call set settings of the phy returned = %d (Legend, invalid argument EINVAL = 22)\n", retVal);
-		return retVal;
-	}
+		return phy_ethtool_sset(priv->slaves[slave_no].phy, ecmd);
 	else
-	{
-        printk(KERN_ERR "********* ERROR(cpsw_set_settings): EOPNOTSUPP\n");
-
 		return -EOPNOTSUPP;
-	}
 }
 
 static void cpsw_get_wol(struct net_device *ndev, struct ethtool_wolinfo *wol)
@@ -1989,7 +1832,6 @@ static void cpsw_slave_init(struct cpsw_slave *slave, struct cpsw_priv *priv,
 static int cpsw_probe_dt(struct cpsw_platform_data *data,
 			 struct platform_device *pdev)
 {
-    printk(KERN_ERR "Entered cpsw_probe_dt \n");
 	struct device_node *node = pdev->dev.of_node;
 	struct device_node *slave_node;
 	int i = 0, ret;
@@ -2034,9 +1876,6 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 	}
 	data->channels = prop;
 
-    printk(KERN_ERR "cpdma_channels = %d \n", prop);
-
-
 	if (of_property_read_u32(node, "ale_entries", &prop)) {
 		pr_err("Missing ale_entries property in the DT.\n");
 		return -EINVAL;
@@ -2049,15 +1888,11 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 	}
 	data->bd_ram_size = prop;
 
-    printk(KERN_ERR "bd_ram_size = %d \n", prop);
-
 	if (of_property_read_u32(node, "rx_descs", &prop)) {
 		pr_err("Missing rx_descs property in the DT.\n");
 		return -EINVAL;
 	}
 	data->rx_descs = prop;
-
-	printk(KERN_ERR "rx_descs = %d \n", prop);
 
 	if (of_property_read_u32(node, "mac_control", &prop)) {
 		pr_err("Missing mac_control property in the DT.\n");
@@ -2067,21 +1902,6 @@ static int cpsw_probe_dt(struct cpsw_platform_data *data,
 
 	if (of_property_read_bool(node, "dual_emac"))
 		data->dual_emac = 1;
-
-	// funny checkup
-	// according to the comments, this function checks for property presence, not value
-	// interesting to test
-    if (of_property_read_bool(node, "no_bd_ram")) {
-        printk(KERN_ERR "no_bd_ram: read bool returned true\n");
-        data->no_bd_ram = 1;
-    }
-    else
-    {
-        printk(KERN_ERR "no_bd_ram: read bool returned false\n");
-        data->no_bd_ram = 0;
-    }
-
-    printk(KERN_ERR "no_bd_ram = %d \n", data->no_bd_ram);
 
 	/*
 	 * Populate all the child nodes here...
@@ -2220,7 +2040,6 @@ static int cpsw_probe_dual_emac(struct platform_device *pdev,
 
 static int cpsw_probe(struct platform_device *pdev)
 {
-    printk("------------------ TI eth: calling probe!\n");
 	struct cpsw_platform_data	*data;
 	struct net_device		*ndev;
 	struct cpsw_priv		*priv;
@@ -2230,7 +2049,6 @@ static int cpsw_probe(struct platform_device *pdev)
 	struct resource			*res, *ss_res;
 	u32 slave_offset, sliver_offset, slave_size;
 	int ret = 0, i, j = 0, k = 0;
-	int irq;
 
 	ndev = alloc_etherdev(sizeof(struct cpsw_priv));
 	if (!ndev) {
@@ -2367,14 +2185,6 @@ static int cpsw_probe(struct platform_device *pdev)
 		sliver_offset += SLIVER_SIZE;
 	}
 
-	// overwrite phy mem descriptors if no_bd_ram property is set
-	if (data->no_bd_ram)
-	{
-        dma_params.desc_mem_phys = 0;
-	}
-
-	printk(KERN_ERR "cpsw version = %d; data->no_bd_ram = %d; dma_params.desc_mem_phys = %d\n",priv->version, data->no_bd_ram, dma_params.desc_mem_phys);
-
 	dma_params.dev		= &pdev->dev;
 	dma_params.rxthresh	= dma_params.dmaregs + CPDMA_RXTHRESH;
 	dma_params.rxfree	= dma_params.dmaregs + CPDMA_RXFREE;
@@ -2446,21 +2256,13 @@ static int cpsw_probe(struct platform_device *pdev)
 	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
 		for (i = res->start; i <= res->end; i++, j++) {
 			if (j == 2)
-			{
-			    printk(KERN_ERR "------------------ TI eth: register TX IRQ!\n");
-
 				ret = devm_request_irq(&pdev->dev, i,
 					cpsw_tx_interrupt, 0,
 					"eth-tx", priv);
-			}
 			else
-			{
-                printk(KERN_ERR "------------------ TI eth: register IRQ!\n");
-
 				ret = devm_request_irq(&pdev->dev, i,
 					cpsw_interrupt, 0,
 					dev_name(priv->dev), priv);
-			}
 			if (ret) {
 				dev_err(priv->dev, "error attaching irq\n");
 				goto clean_ale_ret;
@@ -2470,44 +2272,6 @@ static int cpsw_probe(struct platform_device *pdev)
 		}
 		k++;
 	}
-
-//	/* Grab RX and TX IRQs. Note that we also have RX_THRESHOLD and
-//	 * MISC IRQs which are always kept disabled with this driver so
-//	 * we will not request them.
-//	 *
-//	 * If anyone wants to implement support for those, make sure to
-//	 * first request and append them to irqs_table array.
-//	 */
-//
-//	/* RX IRQ */
-//	irq = platform_get_irq(pdev, 1);
-//	if (irq < 0) {
-//		ret = irq;
-//		goto clean_ale_ret;
-//	}
-//
-//	priv->irqs_table[0] = irq;
-//	ret = devm_request_irq(&pdev->dev, irq, cpsw_interrupt,
-//			       0, dev_name(&pdev->dev), priv);
-//	if (ret < 0) {
-//		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
-//		goto clean_ale_ret;
-//	}
-//
-//	/* TX IRQ */
-//	irq = platform_get_irq(pdev, 2);
-//	if (irq < 0) {
-//		ret = irq;
-//		goto clean_ale_ret;
-//	}
-//
-//	priv->irqs_table[1] = irq;
-//	ret = devm_request_irq(&pdev->dev, irq, cpsw_tx_interrupt,
-//			       0, dev_name(&pdev->dev), priv);
-//	if (ret < 0) {
-//		dev_err(priv->dev, "error attaching irq (%d)\n", ret);
-//		goto clean_ale_ret;
-//	}
 
 	cpsw_notice(priv, probe, "initialized device (regs %x, irq %d)\n",
 		    ss_res->start, ndev->irq);
@@ -2557,8 +2321,6 @@ static int cpsw_remove(struct platform_device *pdev)
 
 static int cpsw_suspend(struct device *dev)
 {
-    printk(KERN_ERR "CPSW:Suspend is being called...\n");
-
 	struct platform_device	*pdev = to_platform_device(dev);
 	struct net_device	*ndev = platform_get_drvdata(pdev);
 	struct cpsw_priv	*priv = netdev_priv(ndev);
@@ -2578,7 +2340,6 @@ static int cpsw_suspend(struct device *dev)
 
 static int cpsw_resume(struct device *dev)
 {
-    printk(KERN_ERR "CPSW:Resume is being called...\n");
 	struct platform_device	*pdev = to_platform_device(dev);
 	struct net_device	*ndev = platform_get_drvdata(pdev);
 
@@ -2612,13 +2373,10 @@ static struct platform_driver cpsw_driver = {
 	},
 	.probe = cpsw_probe,
 	.remove = cpsw_remove,
-	.suspend = cpsw_suspend,
-	.resume = cpsw_resume,
 };
 
 static int __init cpsw_init(void)
 {
-    printk("\n------------ TI ethernet: calling init!\n");
 	return platform_driver_register(&cpsw_driver);
 }
 late_initcall(cpsw_init);
